@@ -17,3 +17,5 @@ env_variables:
   # Performance
   CONN_POOL_SIZE: 5
   MAX_THREADS: 5
+
+  TXN_RETRY_STRAT: "none"
