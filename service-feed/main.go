@@ -14,6 +14,8 @@ import (
 )
 
 var (
+	templates = template.Must(template.ParseFiles("land.html", "feed.html"))
+
 	// https://github.com/gorilla/mux is the solution to this hack.
 	userRegex = regexp.MustCompile(`^/user/(\w+)`)
 
@@ -46,62 +48,10 @@ type DocTmpl struct {
 }
 
 func (h *Handler) baseHandler(w http.ResponseWriter, r *http.Request) {
-	// err := templates.ExecuteTemplate(w, "land.html", h.baseTmpl)
-
-	tmplLand, err := template.New("land").Parse(`<!doctype html>
-	<html lang="en">
-		<head>
-			<meta charset="utf-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1">
-	
-			<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-			<style>
-				body {
-					background-color: rgb(221, 221, 221);
-				}
-	
-				form {
-					width:500px;
-				}
-			</style>
-	
-			<title>Flight Simulator</title>
-		</head>
-	
-	<body onload="setConfigs();">
-	
-		<h2 id="headline">{{.Headline}}</h2>
-	
-		<form action="/user" method="get">
-			<div class="mb-3">
-				<label for="user" class="form-label">Username:</label>
-				<input type="text" class="form-control" id="user" name="user" aria-describedby="userHelp">
-				<div id="userHelp" class="form-text">Your account will be created if you don't have one.</div>
-			</div>
-			<button type="submit" class="btn btn-primary">Log In</button>
-		</form>
-	
-	</body>
-	
-	<script>
-		function setConfigs() {
-			document.getElementById("headline").style.color = "{{.TextColor}}";
-		}
-	</script>
-	
-	</html>`)
-	if err != nil {
-		log.Printf("Template error: %v", err)
-		h.baseTmpl.Headline = "Failed to parse template"
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	if err := templates.ExecuteTemplate(w, "land.html", h.baseTmpl); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	if err := tmplLand.Execute(w, h.baseTmpl); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	h.baseTmpl.Headline = util.LoadEnvString(util.EnvHeadline, "Welcome")
 }
 
 // This exists because I don't know how to go directly to /user/username from
@@ -140,74 +90,7 @@ func (h *Handler) loginHandler(w http.ResponseWriter, r *http.Request, user stri
 		return
 	}
 
-	// err = templates.ExecuteTemplate(w, "feed.html", feedTmpl)
-	tmplFeed, err := template.New("feed").Parse(`<!doctype html>
-	<html lang="en">
-		<head>
-			<meta charset="utf-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1">
-	
-			<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-			<style>
-				body {
-					background-color: rgb(54, 54, 54);
-					color:rgb(255, 208, 146);
-				}
-			</style>
-			
-			<title>Flight Simulator</title>
-		</head>
-	
-	<body>
-	
-		<h1 id="headline">{{.Headline}}</h1>
-	
-		<form action="/publish" name="publishForm" method="get">
-			<div class="mb-3">
-				<label for="text" class="form-label">What would you like to say?</label>
-				<textarea id="text" name="text" rows="3" cols="50"></textarea>
-			</div>
-			<input type="hidden" name="user" value={{.User}}>
-			<button type="submit" class="btn btn-primary">Publish</button>
-		</form>
-	
-		<div class="container">
-			<p>My docs:</p>
-			{{range .Self}}
-				<div class="row justify-content-start">
-					{{.Text}}
-				</div>
-			{{end}}
-		</div>
-	
-		<div class="container justify-content-start">
-			<p>Feed:</p>
-			{{range .Feed}}
-				<div class="row">
-					<div class="col align-self-start">{{.Author}}</div>
-					<div class="col align-self-center">{{.Text}}</div>
-				</div>
-				<div class="row">
-					<form action="/follow" name="followForm" method="get">
-						<input type="hidden" name="src" value={{$.User}}>
-						<input type="hidden" name="dst" value={{.Author}}>
-						<button type="submit" class="btn btn-outline-info">Follow</button>
-					</form>
-				</div>
-			{{end}}
-		</div>
-	
-	</body>
-	
-	</html>`)
-	if err != nil {
-		log.Printf("Template error: %v", err)
-		h.baseTmpl.Headline = "Failed to parse template"
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
-	}
-
-	if err := tmplFeed.Execute(w, feedTmpl); err != nil {
+	if err := templates.ExecuteTemplate(w, "feed.html", feedTmpl); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
