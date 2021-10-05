@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	templates = template.Must(template.ParseFiles("land.html", "feed.html"))
+	templates = template.Must(template.ParseGlob("templates/*.html"))
 
 	// https://github.com/gorilla/mux is the solution to this hack.
 	userRegex = regexp.MustCompile(`^/user/(\w+)`)
