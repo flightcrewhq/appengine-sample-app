@@ -13,6 +13,14 @@ import (
 	"holosam/appengine/demo/pkg/util"
 )
 
+const (
+	cycleLength = 2 * time.Minute
+)
+
+var (
+	rnd = rand.New(rand.NewSource(time.Now().Unix()))
+)
+
 type reqType int
 
 const (
@@ -39,7 +47,6 @@ func (t reqType) createURL(baseURL string, args ...string) string {
 
 type Simulation struct {
 	client *util.HttpClient
-	pool   *util.ThreadPool
 	params SimParams
 
 	mu      sync.RWMutex
@@ -51,6 +58,7 @@ type SimParams struct {
 	BaseURL      string
 	Concurrency  int
 	MaxUserIndex int
+	Length       time.Duration
 }
 
 type reqMetrics struct {
@@ -62,33 +70,125 @@ type reqMetrics struct {
 func NewSimulation(params SimParams) *Simulation {
 	return &Simulation{
 		client:  util.NewHttpClient(),
-		pool:    util.NewThreadPool(params.Concurrency),
 		params:  params,
 		metrics: make([]map[reqType]*reqMetrics, params.MaxUserIndex),
 		rnd:     rand.New(rand.NewSource(time.Now().Unix())),
 	}
 }
 
-func (s *Simulation) Run(ctx context.Context) {
-	log.Printf("Beginning simulation")
-	i := 0
+// Run until the context ends.
+func (s *Simulation) RunFlat(ctx context.Context) {
+	pool := util.NewThreadPool(s.params.Concurrency)
+
+	iteration := 0
 	for {
-		x := i
-		if err := s.pool.Run(ctx, func() error {
-			s.executeEvent(x % s.params.MaxUserIndex)
+		userIndex := iteration
+		if err := pool.Run(ctx, func() error {
+			s.executeEvent(userIndex % s.params.MaxUserIndex)
 			return nil
 		}); err != nil {
-			log.Printf("Run error: %v", err)
+			log.Printf("Context ended: %v", err)
 			break
 		}
-		i++
+		iteration++
 	}
 
-	_ = s.pool.Join(ctx)
-	s.printStats()
+	// Context is ended but still calls "Wait()"
+	pool.Join(ctx)
 }
 
-func (s *Simulation) printStats() {
+// Run a cyclical traffic pattern that goes up and down.
+func (s *Simulation) RunCyclical(ctx context.Context) {
+	iteration := 0
+	threadsToUse := 1
+	ascending := true
+
+outer:
+	for {
+		// Quick non-blocking check to see if the entire simulation is over.
+		select {
+		case <-ctx.Done():
+			log.Printf("Context ended: %v", ctx.Err())
+			break outer
+		default:
+		}
+
+		pool := util.NewThreadPool(threadsToUse)
+		cycleCtx, cancel := context.WithTimeout(ctx, cycleLength)
+
+		for {
+			userIndex := iteration
+			if err := pool.Run(cycleCtx, func() error {
+				s.executeEvent(userIndex % s.params.MaxUserIndex)
+				return nil
+			}); err != nil {
+				cancel()
+				log.Printf("Cycle %d ended: %v", threadsToUse, err)
+				break
+			}
+			iteration++
+		}
+		pool.Join(cycleCtx)
+
+		if ascending && threadsToUse == s.params.Concurrency {
+			ascending = false
+		} else if !ascending && threadsToUse == 1 {
+			ascending = true
+		}
+
+		if ascending {
+			threadsToUse++
+		} else {
+			threadsToUse--
+		}
+	}
+}
+
+// Run a bursty traffic pattern that switches between min and max traffic at
+// intervals.
+func (s *Simulation) RunBursty(ctx context.Context) {
+	iteration := 0
+	threadsToUse := 1
+	timeout := cycleLength
+
+outer:
+	for {
+		select {
+		case <-ctx.Done():
+			log.Printf("Context ended: %v", ctx.Err())
+			break outer
+		default:
+			// Don't block
+		}
+
+		pool := util.NewThreadPool(threadsToUse)
+		cycleCtx, cancel := context.WithTimeout(ctx, timeout)
+
+		for {
+			userIndex := iteration
+			if err := pool.Run(cycleCtx, func() error {
+				s.executeEvent(userIndex % s.params.MaxUserIndex)
+				return nil
+			}); err != nil {
+				cancel()
+				log.Printf("Cycle %d ended: %v", threadsToUse, err)
+				break
+			}
+			iteration++
+		}
+		pool.Join(cycleCtx)
+
+		if threadsToUse == 1 {
+			threadsToUse = s.params.Concurrency
+			timeout = cycleLength
+		} else {
+			threadsToUse = 1
+			timeout = cycleLength * time.Duration(rnd.Intn(4)+1)
+		}
+	}
+}
+
+func (s *Simulation) PrintStats() {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
