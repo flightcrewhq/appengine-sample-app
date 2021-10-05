@@ -42,12 +42,14 @@ func main() {
 			sim.RunCyclical(ctx)
 		case "bursty":
 			sim.RunBursty(ctx)
+		default:
+			log.Fatalf("Unrecognized type: %s", *simType)
 		}
 
 		sim.PrintStats()
 
 	default:
-		log.Fatal("Not a recognized command.")
+		log.Fatalf("Unrecognized command: %s", os.Args[1])
 	}
 
 	log.Printf("Exited successfully")

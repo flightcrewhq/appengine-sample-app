@@ -2,10 +2,12 @@
 runtime: go115
 # service: feed
 
-handlers:
-- url: /favicon\.ico
-  static_files: static/favicon.ico
-  upload: static/favicon\.ico
+# The sha1_sum for the favicon for some reason has underscores in it, which
+# then fails the CreateVersion request checks "does not match the pattern..."
+# handlers:
+# - url: /favicon\.ico
+#   static_files: static/favicon.ico
+#   upload: static/favicon\.ico
 
 instance_class: F2
 
