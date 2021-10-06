@@ -11,11 +11,11 @@ import (
 // Switch to https://github.com/spf13/cobra.
 func main() {
 	simulateCmd := flag.NewFlagSet("simulate", flag.ExitOnError)
-	simFeedURL := simulateCmd.String("url", "https://feed-dot-fifth-marker-318421.uc.r.appspot.com/", "Base url for the web app.")
+	simFeedURL := simulateCmd.String("url", "", "Base url for the web app.")
 	simDuration := simulateCmd.Duration("d", 30*time.Minute, "How long to run for.")
-	simConcurrency := simulateCmd.Int("c", 5, "Max threads to use.")
+	simConcurrency := simulateCmd.Int("c", 3, "Max threads to use.")
 	simUsers := simulateCmd.Int("u", 100, "Number of users to hit.")
-	simType := simulateCmd.String("t", "max", "Type of traffic to simulate, options: [ max, cyclical, bursty ]")
+	simType := simulateCmd.String("t", "cyclical", "Type of traffic to simulate, options: [ max, cyclical, bursty ]")
 
 	if len(os.Args) < 2 {
 		log.Fatal("Need a subcommand.")
@@ -27,6 +27,10 @@ func main() {
 
 		ctx, cancel := context.WithTimeout(context.Background(), *simDuration)
 		defer cancel()
+
+		if *simFeedURL == "" {
+			log.Fatalf("No input URL to hit.")
+		}
 
 		sim := NewSimulation(SimParams{
 			BaseURL:      *simFeedURL,

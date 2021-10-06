@@ -1,6 +1,6 @@
 # https://cloud.google.com/appengine/docs/standard/go/config/appref
 runtime: go115
-# service: feed
+service: feed
 
 # The sha1_sum for the favicon for some reason has underscores in it, which
 # then fails the CreateVersion request checks "does not match the pattern..."
