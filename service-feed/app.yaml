@@ -1,5 +1,5 @@
 # https://cloud.google.com/appengine/docs/standard/go/config/appref
-runtime: go115
+runtime: go122
 service: feed
 
 # The sha1_sum for the favicon for some reason has underscores in it, which
@@ -9,16 +9,24 @@ service: feed
 #   static_files: static/favicon.ico
 #   upload: static/favicon\.ico
 
-instance_class: F2
+instance_class: F1
 
 inbound_services:
 - warmup
 
 automatic_scaling:
-  target_cpu_utilization: 0.60
+  target_cpu_utilization: 0.55
+
   target_throughput_utilization: 0.60
-  max_concurrent_requests: 10
-  max_pending_latency: 500ms
+  # max_concurrent_requests: 10
+
+  max_pending_latency: 300ms
+  # min_pending_latency: 0ms
+
+  max_idle_instances: 1
+  min_idle_instances: 0
+
+  max_instances: 10
 
 env_variables:
   # Template
@@ -26,8 +34,8 @@ env_variables:
   TEXT_COLOR: "blue"
 
   # Performance
-  CONN_POOL_SIZE: 5
-  MAX_THREADS: 5
+  CONN_POOL_SIZE: 10
+  MAX_THREADS: 10
 
   # Configs
   SELF_DOCS: 3

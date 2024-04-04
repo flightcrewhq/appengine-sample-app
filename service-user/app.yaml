@@ -1,21 +1,29 @@
 # https://cloud.google.com/appengine/docs/standard/go/config/appref
-runtime: go115
+runtime: go122
 service: user
 
-instance_class: F2
+instance_class: F1
 
 inbound_services:
 - warmup
 
 automatic_scaling:
-  target_cpu_utilization: 0.60
+  target_cpu_utilization: 0.75
+
   target_throughput_utilization: 0.60
   max_concurrent_requests: 10
-  max_pending_latency: 500ms
+
+  max_pending_latency: 1.7s
+  min_pending_latency: 200ms
+
+  max_idle_instances: 0
+  min_idle_instances: 0
+
+  max_instances: 3
 
 env_variables:
   # Performance
-  CONN_POOL_SIZE: 5
-  MAX_THREADS: 5
+  CONN_POOL_SIZE: 10
+  MAX_THREADS: 10
 
   TXN_RETRY_STRAT: "none"
