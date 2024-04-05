@@ -1,0 +1,6 @@
+version: 1
+configs:
+  - cloud_id: "app:psychic-torus-328123/service:feed"
+    file: "service-feed/app.yaml"
+  - cloud_id: "app:psychic-torus-328123/service:user"
+    file: "service-user/app.yaml"
