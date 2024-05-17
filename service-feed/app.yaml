@@ -15,12 +15,13 @@ inbound_services:
 - warmup
 
 automatic_scaling:
+  max_concurrent_requests: 10
   target_cpu_utilization: 0.55
 
-  target_throughput_utilization: 0.60
+  target_throughput_utilization: 0.50
   # max_concurrent_requests: 10
 
-  max_pending_latency: 300ms
+  max_pending_latency: 1.0s
   # min_pending_latency: 0ms
 
   max_idle_instances: 1
